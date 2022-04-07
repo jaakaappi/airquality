@@ -7,5 +7,4 @@ Yet Another Air Quality Meter
 * https://github.com/sparkfun/SparkFun_BME280_Arduino_Library
 * https://github.com/sparkfun/SparkFun_CCS811_Arduino_Library/tree/master/examples
 
-// Original code https://github.com/sparkfun/SparkFun_CCS811_Arduino_Library/blob/master/examples/Example2_BME280Compensation/Example2_BME280Compensation.ino
-// By Marshall Taylor @ SparkFun Electronics, April 4, 2017
+Original code https://github.com/sparkfun/SparkFun_CCS811_Arduino_Library/blob/master/examples/Example2_BME280Compensation/Example2_BME280Compensation.ino by Marshall Taylor @ SparkFun Electronics, April 4, 2017

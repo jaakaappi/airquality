@@ -1,9 +1,20 @@
-// Original code https://github.com/sparkfun/SparkFun_CCS811_Arduino_Library/blob/master/examples/Example2_BME280Compensation/Example2_BME280Compensation.ino
-// By Marshall Taylor @ SparkFun Electronics, April 4, 2017
-
+#include <SPI.h>
 #include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <SparkFunBME280.h> //Click here to get the library: http://librarymanager/All#SparkFun_BME280
 #include <SparkFunCCS811.h> //Click here to get the library: http://librarymanager/All#SparkFun_CCS811
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+#define OLED_MOSI 6
+#define OLED_CLK 7
+#define OLED_DC 8
+#define OLED_CS 9
+#define OLED_RESET 11
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
+  OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
 #define CCS811_ADDR 0x5B //Default I2C Address
 #define RED_PIN 14
@@ -45,6 +56,12 @@ void setup()
 
   delay(10); //Make sure sensor had enough time to turn on. BME280 requires 2ms to start up.
   myBME280.begin();
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  display.println(F("Hello, world!"));
 }
 
 void loop()
@@ -55,11 +72,11 @@ void loop()
       myCCS811.readAlgorithmResults();
       printInfoSerial();
 
-      if (myCCS811.getCO2() < 400) {
+      if (myCCS811.getCO2() < 500) {
         digitalWrite(GREEN_PIN, HIGH);
         digitalWrite(YELLOW_PIN, LOW);
         digitalWrite(RED_PIN, LOW);
-      } else if (myCCS811.getCO2() > 400 && myCCS811.getCO2() < 1000) {
+      } else if (myCCS811.getCO2() > 500 && myCCS811.getCO2() < 1000) {
         digitalWrite(GREEN_PIN, LOW);
         digitalWrite(YELLOW_PIN, HIGH);
         digitalWrite(RED_PIN, LOW);
