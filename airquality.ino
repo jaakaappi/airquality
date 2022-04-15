@@ -1,22 +1,12 @@
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <SparkFunBME280.h> //Click here to get the library: http://librarymanager/All#SparkFun_BME280
-#include <SparkFunCCS811.h> //Click here to get the library: http://librarymanager/All#SparkFun_CCS811
+#include <SparkFunBME280.h> // Click here to get the library: http://librarymanager/All#SparkFun_BME280
+#include <SparkFunCCS811.h> // Click here to get the library: http://librarymanager/All#SparkFun_CCS811
+#include <hd44780.h>                       // main hd44780 header
+#include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
+#define CCS811_ADDR 0x5B // Default I2C Address
 
-#define OLED_MOSI 6
-#define OLED_CLK 7
-#define OLED_DC 8
-#define OLED_CS 9
-#define OLED_RESET 11
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
-  OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
-
-#define CCS811_ADDR 0x5B //Default I2C Address
 #define RED_PIN 14
 #define YELLOW_PIN 12
 #define GREEN_PIN 13
@@ -24,10 +14,22 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
 CCS811 myCCS811(CCS811_ADDR);
 BME280 myBME280;
 
+hd44780_I2Cexp lcd(0x20);
+
 boolean sensorsReady = false; // CCS811 and BME280 require 20 minutes to start showing accurate results.
+int nextMeasurement = 0;
 
 void setup()
 {
+  lcd.begin(16, 2);
+  lcd.print("Hello, world!");
+
+  delay(1000);
+  delay(1000);
+  delay(1000);
+  delay(1000);
+  delay(1000);
+
   pinMode(RED_PIN, OUTPUT);
   pinMode(YELLOW_PIN, OUTPUT);
   pinMode(GREEN_PIN, OUTPUT);
@@ -36,8 +38,8 @@ void setup()
   Serial.println();
   Serial.println("Apply BME280 data to CCS811 for compensation.");
 
-  Wire.begin();
-  
+  //Wire.begin();
+
   CCS811Core::CCS811_Status_e returnCode = myCCS811.beginWithStatus();
   Serial.print("CCS811 begin exited with: ");
   Serial.println(myCCS811.statusString(returnCode));
@@ -56,12 +58,6 @@ void setup()
 
   delay(10); //Make sure sensor had enough time to turn on. BME280 requires 2ms to start up.
   myBME280.begin();
-  
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0,0);
-  display.println(F("Hello, world!"));
 }
 
 void loop()
@@ -71,6 +67,7 @@ void loop()
     {
       myCCS811.readAlgorithmResults();
       printInfoSerial();
+      printInfoLcd();
 
       if (myCCS811.getCO2() < 500) {
         digitalWrite(GREEN_PIN, HIGH);
@@ -94,9 +91,15 @@ void loop()
     }
 
     delay(2000);
-  } else if (millis() >= 20 * 60 * 1000) {
+  } else if (millis() >= /*20 * 60 **/ 1000) {
     sensorsReady = true;
   } else {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Sensors booting");
+    lcd.setCursor(0, 1);
+    lcd.print(String(millis() / (1000 * 60)) + "/20 minutes");
+
     Serial.print("Waiting for sensors to stabilize, currently elapsed: ");
     Serial.print(millis() / (1000 * 60));
     Serial.println("/20 minutes");
@@ -114,6 +117,22 @@ void loop()
     delay(1000);
   }
 
+}
+
+void printInfoLcd()
+{
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("CO2 " + String(myCCS811.getCO2()) + " ppm");
+  lcd.setCursor(0, 1);
+  lcd.print("TVOC " + String(myCCS811.getTVOC()) + " ppb");
+
+  delay(3000);
+
+  lcd.setCursor(0, 0);
+  lcd.print("Temp " + String(myBME280.readTempC()) + " \xDF""C"); // https://forum.arduino.cc/t/solved-how-to-print-the-degree-symbol-extended-ascii/438685/5
+  lcd.setCursor(0, 1);
+  lcd.print("RelHum " + String(myBME280.readFloatHumidity()) + " %");
 }
 
 void printInfoSerial()
@@ -166,22 +185,47 @@ void printSensorError()
   if (error == 0xFF) //comm error
   {
     Serial.println("Failed to get ERROR_ID register.");
+    //lcd.setCursor(0, 0);
+    //lcd.print("Failed to get");
+    //lcd.setCursor(0, 1);
+    //lcd.print("ERROR_ID reg.");
   }
   else
   {
     Serial.print("Error: ");
-    if (error & 1 << 5)
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Error:");
+    if (error & 1 << 5) {
       Serial.print("HeaterSupply");
-    if (error & 1 << 4)
+      lcd.setCursor(0, 1);
+      lcd.print("HeaterSupply");
+    }
+    if (error & 1 << 4) {
       Serial.print("HeaterFault");
-    if (error & 1 << 3)
+      lcd.setCursor(0, 1);
+      lcd.print("HeaterFault");
+    }
+    if (error & 1 << 3) {
       Serial.print("MaxResistance");
-    if (error & 1 << 2)
+      lcd.setCursor(0, 1);
+      lcd.print("MaxResistance");
+    }
+    if (error & 1 << 2) {
       Serial.print("MeasModeInvalid");
-    if (error & 1 << 1)
+      lcd.setCursor(0, 1);
+      lcd.print("MeasModeInvalid");
+    }
+    if (error & 1 << 1) {
       Serial.print("ReadRegInvalid");
-    if (error & 1 << 0)
+      lcd.setCursor(0, 1);
+      lcd.print("ReadRegInvalid");
+    }
+    if (error & 1 << 0) {
       Serial.print("MsgInvalid");
+      lcd.setCursor(0, 1);
+      lcd.print("MsgInvalid");
+    }
     Serial.println();
   }
 }
