@@ -1,6 +1,6 @@
 # airquality
 
-Yet Another Air Quality Meter, shows CO2, TVOC, temperature and relative humidity readings
+Yet Another Air Quality Meter. Shows CO2, TVOC, temperature and relative humidity readings
 
 Hardware
 * NodeMCUv3 ESP8266 (ESP-12E)
