@@ -10,4 +10,4 @@ Hardware
 
 Generally based on https://github.com/sparkfun/SparkFun_CCS811_Arduino_Library/blob/master/examples/Example2_BME280Compensation/Example2_BME280Compensation.ino by Marshall Taylor @ SparkFun Electronics, April 4, 2017
 
-![Gif of system running](https://i.imgur.com/FzSuMPB.mp4)
+![Gif of system running](https://s7.gifyu.com/images/aqa734ce1cb404474f.gif)
