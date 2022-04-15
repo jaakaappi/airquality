@@ -22,13 +22,6 @@ int nextMeasurement = 0;
 void setup()
 {
   lcd.begin(16, 2);
-  lcd.print("Hello, world!");
-
-  delay(1000);
-  delay(1000);
-  delay(1000);
-  delay(1000);
-  delay(1000);
 
   pinMode(RED_PIN, OUTPUT);
   pinMode(YELLOW_PIN, OUTPUT);
@@ -91,12 +84,12 @@ void loop()
     }
 
     delay(2000);
-  } else if (millis() >= /*20 * 60 **/ 1000) {
+  } else if (millis() >= 20 * 60 * 1000) {
     sensorsReady = true;
   } else {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Sensors booting");
+    lcd.print("Warming up");
     lcd.setCursor(0, 1);
     lcd.print(String(millis() / (1000 * 60)) + "/20 minutes");
 
