@@ -2,8 +2,9 @@
 #include <Wire.h>
 #include <SparkFunBME280.h> // Click here to get the library: http://librarymanager/All#SparkFun_BME280
 #include <SparkFunCCS811.h> // Click here to get the library: http://librarymanager/All#SparkFun_CCS811
-#include <hd44780.h>                       // main hd44780 header
+#include <hd44780.h> // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
+#include <ESP8266WiFi.h>
 
 #define CCS811_ADDR 0x5B // Default I2C Address
 
@@ -11,16 +12,24 @@
 #define YELLOW_PIN 12
 #define GREEN_PIN 13
 
+#define MEASUREMENT_INTERVAL 60*1000
+
 CCS811 myCCS811(CCS811_ADDR);
 BME280 myBME280;
 
 hd44780_I2Cexp lcd(0x20);
 
 boolean sensorsReady = false; // CCS811 and BME280 require 20 minutes to start showing accurate results.
-int nextMeasurement = 0;
+int previousMeasurementMillis = 0;
+float co2 = 0.0;
+float tvoc = 0.0;
+float temperatureC = 0.0;
+float relativeHumidity = 0.0;
 
 void setup()
 {
+  WiFi.mode(WIFI_OFF);
+
   lcd.begin(16, 2);
 
   pinMode(RED_PIN, OUTPUT);
@@ -49,8 +58,10 @@ void setup()
   myBME280.settings.pressOverSample = 5;
   myBME280.settings.humidOverSample = 5;
 
-  delay(10); //Make sure sensor had enough time to turn on. BME280 requires 2ms to start up.
+  delay(10);
   myBME280.begin();
+  delay(10);
+  readMeasurements();
 }
 
 void loop()
@@ -58,32 +69,33 @@ void loop()
   if (sensorsReady) {
     if (sensorsReady && myCCS811.dataAvailable())
     {
-      myCCS811.readAlgorithmResults();
       printInfoSerial();
       printInfoLcd();
 
-      if (myCCS811.getCO2() < 500) {
-        digitalWrite(GREEN_PIN, HIGH);
-        digitalWrite(YELLOW_PIN, LOW);
-        digitalWrite(RED_PIN, LOW);
-      } else if (myCCS811.getCO2() > 500 && myCCS811.getCO2() < 1000) {
-        digitalWrite(GREEN_PIN, LOW);
-        digitalWrite(YELLOW_PIN, HIGH);
-        digitalWrite(RED_PIN, LOW);
-      } else if (myCCS811.getCO2() > 1000) {
-        digitalWrite(GREEN_PIN, LOW);
-        digitalWrite(YELLOW_PIN, LOW);
-        digitalWrite(RED_PIN, HIGH);
+      if (millis() - previousMeasurementMillis >= MEASUREMENT_INTERVAL) {
+        readMeasurements();
+        if (co2 < 500) {
+          digitalWrite(GREEN_PIN, HIGH);
+          digitalWrite(YELLOW_PIN, LOW);
+          digitalWrite(RED_PIN, LOW);
+        } else if (co2 > 500 && co2 < 1000) {
+          digitalWrite(GREEN_PIN, LOW);
+          digitalWrite(YELLOW_PIN, HIGH);
+          digitalWrite(RED_PIN, LOW);
+        } else if (co2 > 1000) {
+          digitalWrite(GREEN_PIN, LOW);
+          digitalWrite(YELLOW_PIN, LOW);
+          digitalWrite(RED_PIN, HIGH);
+        }
+        previousMeasurementMillis = millis();
       }
-
-      myCCS811.setEnvironmentalData(myBME280.readFloatHumidity(), myBME280.readTempC());
     }
     else if (myCCS811.checkForStatusError())
     {
       printSensorError();
     }
 
-    delay(2000);
+    delay(3000);
   } else if (millis() >= 20 * 60 * 1000) {
     sensorsReady = true;
   } else {
@@ -112,20 +124,29 @@ void loop()
 
 }
 
+void readMeasurements() {
+  myCCS811.readAlgorithmResults();
+  co2 = myCCS811.getCO2();
+  tvoc = myCCS811.getTVOC();
+  temperatureC = myBME280.readTempC();
+  relativeHumidity = myBME280.readFloatHumidity();
+  myCCS811.setEnvironmentalData(myBME280.readFloatHumidity(), myBME280.readTempC());
+}
+
 void printInfoLcd()
 {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("CO2 " + String(myCCS811.getCO2()) + " ppm");
+  lcd.print("CO2 " + String(co2) + " ppm");
   lcd.setCursor(0, 1);
-  lcd.print("TVOC " + String(myCCS811.getTVOC()) + " ppb");
+  lcd.print("TVOC " + String(tvoc) + " ppb");
 
   delay(3000);
 
   lcd.setCursor(0, 0);
-  lcd.print("Temp " + String(myBME280.readTempC()) + " \xDF""C"); // https://forum.arduino.cc/t/solved-how-to-print-the-degree-symbol-extended-ascii/438685/5
+  lcd.print("Temp " + String(temperatureC) + " \xDF""C"); // https://forum.arduino.cc/t/solved-how-to-print-the-degree-symbol-extended-ascii/438685/5
   lcd.setCursor(0, 1);
-  lcd.print("RelHum " + String(myBME280.readFloatHumidity()) + " %");
+  lcd.print("RelHum " + String(relativeHumidity) + " %");
 }
 
 void printInfoSerial()
