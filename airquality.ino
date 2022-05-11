@@ -21,8 +21,8 @@ hd44780_I2Cexp lcd(0x20);
 
 boolean sensorsReady = false; // CCS811 and BME280 require 20 minutes to start showing accurate results.
 int previousMeasurementMillis = 0;
-float co2 = 0.0;
-float tvoc = 0.0;
+int co2 = 0;
+int tvoc = 0;
 float temperatureC = 0.0;
 float relativeHumidity = 0.0;
 
@@ -39,8 +39,6 @@ void setup()
   Serial.begin(115200);
   Serial.println();
   Serial.println("Apply BME280 data to CCS811 for compensation.");
-
-  //Wire.begin();
 
   CCS811Core::CCS811_Status_e returnCode = myCCS811.beginWithStatus();
   Serial.print("CCS811 begin exited with: ");
@@ -143,6 +141,7 @@ void printInfoLcd()
 
   delay(3000);
 
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Temp " + String(temperatureC) + " \xDF""C"); // https://forum.arduino.cc/t/solved-how-to-print-the-degree-symbol-extended-ascii/438685/5
   lcd.setCursor(0, 1);
