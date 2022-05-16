@@ -2,6 +2,8 @@
 
 Yet Another Air Quality Meter. Shows CO2, TVOC, temperature and relative humidity readings
 
+Use PlatformIO to open the project and install dependencies. `/arduino` has an older .ino file for reference
+
 Hardware
 * NodeMCUv3 ESP8266 (ESP-12E)
 * CCS811/BME280 Environmental Combo Breakout (SparkFun)

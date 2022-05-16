@@ -49,12 +49,12 @@ void setup()
 
   myBME280.settings.commInterface = I2C_MODE;
   myBME280.settings.I2CAddress = 0x77;
-  myBME280.settings.runMode = 3; //Normal mode
-  myBME280.settings.tStandby = 0;
-  myBME280.settings.filter = 4;
-  myBME280.settings.tempOverSample = 5;
-  myBME280.settings.pressOverSample = 5;
-  myBME280.settings.humidOverSample = 5;
+  myBME280.settings.runMode = MODE_FORCED;
+  myBME280.settings.tStandby = 60000;
+  myBME280.settings.filter = 0;
+  myBME280.settings.tempOverSample = 1;
+  myBME280.settings.pressOverSample = 1;
+  myBME280.settings.humidOverSample = 1;
 
   delay(10);
   myBME280.begin();
