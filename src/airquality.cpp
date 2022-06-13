@@ -190,13 +190,13 @@ void printInfoLcd()
 
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("2.5um/0.1L " + String(pm_data.particles_10um));
+  lcd.print("PM2.5 mg/0.1L " + String(pm_data.particles_10um));
   lcd.setCursor(0, 1);
-  lcd.print("10um/0.1L  " + String(pm_data.particles_25um));
+  lcd.print("PM10 mg/0.1L  " + String(pm_data.particles_25um));
   lcd.setCursor(0, 2);
-  lcd.print("50um/0.1L  " + String(pm_data.particles_50um));
+  lcd.print("PM50 mg/0.1L  " + String(pm_data.particles_50um));
   lcd.setCursor(0, 3);
-  lcd.print("100um/0.1L " + String(pm_data.particles_100um));
+  lcd.print("PM100 mg/0.1L " + String(pm_data.particles_100um));
 }
 
 void printInfoSerial()
