@@ -53,9 +53,11 @@ void sendMeasurements();
 void setup()
 {
   WiFi.begin(SSID, WIFI_PASSWORD);
+  delay(100);
 
   lcd.begin(20, 4);
-  Wire.setPins(SDA_PIN, SCL_PIN);
+  delay(100);
+
   if (st25dv.begin(GPO_PIN, LPD_PIN, &Wire) == 0)
   {
     Serial.println("NFC init done!");
@@ -75,6 +77,7 @@ void setup()
   pinMode(GREEN_PIN, OUTPUT);
 
   Serial.begin(115200);
+  delay(100);
   Serial.println();
   Serial.println("Apply BME280 data to CCS811 for compensation.");
 
@@ -97,8 +100,6 @@ void setup()
   if (!aqi.begin_I2C())
   {
     Serial.println("Could not find PM 2.5 sensor!");
-    while (1)
-      delay(10);
   }
 
   delay(10);
@@ -111,12 +112,12 @@ void loop()
 {
   if (sensorsReady && myCCS811.dataAvailable())
   {
-    printInfoSerial();
     printInfoLcd();
 
     if (millis() - previousMeasurementMillis >= MEASUREMENT_INTERVAL)
     {
       readMeasurements();
+      printInfoSerial();
       if (co2 < 500)
       {
         digitalWrite(GREEN_PIN, HIGH);
@@ -150,11 +151,22 @@ void loop()
       printSensorError();
     }
 
-    delay(60000);
+    delay(5000);
   }
   else if (millis() >= /*20 * 60 * 1000*/ 10000)
   {
     sensorsReady = true;
+    readMeasurements();
+    printInfoSerial();
+    printInfoLcd();
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      sendMeasurements();
+    }
+    else
+    {
+      Serial.println("No WiFi");
+    }
   }
   else
   {
@@ -201,12 +213,27 @@ void loop()
 
 void readMeasurements()
 {
-  myCCS811.readAlgorithmResults();
-  co2 = myCCS811.getCO2();
-  tvoc = myCCS811.getTVOC();
-  temperatureC = myBME280.readTempC();
-  relativeHumidity = myBME280.readFloatHumidity();
-  myCCS811.setEnvironmentalData(myBME280.readFloatHumidity(), myBME280.readTempC());
+  int tempCo2 = 0;
+  int tempTvoc = 0;
+  float tempTemperatureC = 0.0;
+  float tempRelativeHumidity = 0.0;
+
+  // some averaging
+  for (int i = 0; i < 3; i++)
+  {
+    myCCS811.readAlgorithmResults();
+    tempCo2 += myCCS811.getCO2();
+    tempTvoc += myCCS811.getTVOC();
+    tempTemperatureC += myBME280.readTempC();
+    tempRelativeHumidity += myBME280.readFloatHumidity();
+  }
+
+  co2 = tempCo2 / 3;
+  tvoc = tempTvoc / 3;
+  temperatureC = tempTemperatureC / 3;
+  relativeHumidity = tempRelativeHumidity / 3;
+
+  myCCS811.setEnvironmentalData(tempRelativeHumidity, temperatureC);
 
   aqi.read(&pm_data);
 }
