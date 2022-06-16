@@ -3,6 +3,9 @@
 #include <hd44780.h>                       // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include "Adafruit_PM25AQI.h"
+#include <HTTPClient.h>
+
+#include <constants.h>
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -36,10 +39,11 @@ void readMeasurements();
 void printInfoSerial();
 void printInfoLcd();
 void printSensorError();
+void sendMeasurements();
 
 void setup()
 {
-  WiFi.mode(WIFI_OFF);
+  WiFi.begin(SSID, WIFI_PASSWORD);
 
   lcd.begin(20, 4);
 
@@ -82,36 +86,33 @@ void setup()
 
 void loop()
 {
-  if (sensorsReady)
+  if (sensorsReady && myCCS811.dataAvailable())
   {
-    if (sensorsReady && myCCS811.dataAvailable())
-    {
-      printInfoSerial();
-      printInfoLcd();
+    printInfoSerial();
+    printInfoLcd();
 
-      if (millis() - previousMeasurementMillis >= MEASUREMENT_INTERVAL)
+    if (millis() - previousMeasurementMillis >= MEASUREMENT_INTERVAL)
+    {
+      readMeasurements();
+      if (co2 < 500)
       {
-        readMeasurements();
-        if (co2 < 500)
-        {
-          digitalWrite(GREEN_PIN, HIGH);
-          digitalWrite(YELLOW_PIN, LOW);
-          digitalWrite(RED_PIN, LOW);
-        }
-        else if (co2 > 500 && co2 < 1000)
-        {
-          digitalWrite(GREEN_PIN, LOW);
-          digitalWrite(YELLOW_PIN, HIGH);
-          digitalWrite(RED_PIN, LOW);
-        }
-        else if (co2 > 1000)
-        {
-          digitalWrite(GREEN_PIN, LOW);
-          digitalWrite(YELLOW_PIN, LOW);
-          digitalWrite(RED_PIN, HIGH);
-        }
-        previousMeasurementMillis = millis();
+        digitalWrite(GREEN_PIN, HIGH);
+        digitalWrite(YELLOW_PIN, LOW);
+        digitalWrite(RED_PIN, LOW);
       }
+      else if (co2 > 500 && co2 < 1000)
+      {
+        digitalWrite(GREEN_PIN, LOW);
+        digitalWrite(YELLOW_PIN, HIGH);
+        digitalWrite(RED_PIN, LOW);
+      }
+      else if (co2 > 1000)
+      {
+        digitalWrite(GREEN_PIN, LOW);
+        digitalWrite(YELLOW_PIN, LOW);
+        digitalWrite(RED_PIN, HIGH);
+      }
+      previousMeasurementMillis = millis();
     }
     else if (myCCS811.checkForStatusError())
     {
@@ -120,7 +121,7 @@ void loop()
 
     delay(5000);
   }
-  else if (millis() >= 20 * 60 * 1000)
+  else if (millis() >= /*20 * 60 **/ 1000)
   {
     sensorsReady = true;
   }
@@ -128,13 +129,30 @@ void loop()
   {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Warming up");
+    lcd.print("Warming up ");
     lcd.setCursor(0, 1);
     lcd.print(String(millis() / (1000 * 60)) + "/20 minutes");
+    lcd.setCursor(0, 2);
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      lcd.println("No WiFi");
+    }
+    else
+    {
+      lcd.println("WiFi connected");
+    }
 
     Serial.print("Waiting for sensors to stabilize, currently elapsed: ");
     Serial.print(millis() / (1000 * 60));
     Serial.println("/20 minutes");
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      Serial.print("No WiFi");
+    }
+    else
+    {
+      Serial.print("WiFi connected, SSID: " + String(SSID));
+    }
 
     digitalWrite(GREEN_PIN, HIGH);
     delay(200);
@@ -180,11 +198,11 @@ void printInfoLcd()
 
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("PM2.5 " + String(pm_data.pm25_standard));
+  lcd.print("PM2.5 " + String(pm_data.pm25_env));
   lcd.setCursor(0, 1);
-  lcd.print("PM10  " + String(pm_data.pm10_standard));
+  lcd.print("PM10  " + String(pm_data.pm10_env));
   lcd.setCursor(0, 2);
-  lcd.print("PM100 " + String(pm_data.pm100_standard));
+  lcd.print("PM100 " + String(pm_data.pm100_env));
 
   delay(5000);
 
@@ -192,9 +210,9 @@ void printInfoLcd()
   lcd.setCursor(0, 0);
   lcd.print("PM2.5 mg/0.1L " + String(pm_data.particles_10um));
   lcd.setCursor(0, 1);
-  lcd.print("PM10 mg/0.1L  " + String(pm_data.particles_25um));
+  lcd.print("PM10  mg/0.1L " + String(pm_data.particles_25um));
   lcd.setCursor(0, 2);
-  lcd.print("PM50 mg/0.1L  " + String(pm_data.particles_50um));
+  lcd.print("PM50  mg/0.1L " + String(pm_data.particles_50um));
   lcd.setCursor(0, 3);
   lcd.print("PM100 mg/0.1L " + String(pm_data.particles_100um));
 }
@@ -274,6 +292,27 @@ void printInfoSerial()
   Serial.println(F("---------------------------------------"));
 }
 
+void sendMeasurements()
+{
+  WiFiClient client;
+  HTTPClient http;
+  http.begin(client, SERVER_URL);
+  http.addHeader("Content-Type", "application/json");
+
+  String json = "{";
+  json += "'temperature':" + String(temperatureC) + ",";
+  json += "'humidity':" + String(relativeHumidity) + ",";
+  json += "'co2':" + String(co2) + ",";
+  json += "'tvoc':" + String(tvoc) + ",";
+  json += "'pm25':" + String(pm_data.pm25_env) + ",";
+  json += "'pm10':" + String(pm_data.pm10_env) + ",";
+  json += "}";
+
+  int httpResponseCode = http.POST(json);
+  Serial.println("Sending data: " + httpResponseCode);
+  http.end();
+}
+
 void printSensorError()
 {
   uint8_t error = myCCS811.getErrorRegister();
@@ -281,10 +320,10 @@ void printSensorError()
   if (error == 0xFF) // comm error
   {
     Serial.println("Failed to get ERROR_ID register.");
-    // lcd.setCursor(0, 0);
-    // lcd.print("Failed to get");
-    // lcd.setCursor(0, 1);
-    // lcd.print("ERROR_ID reg.");
+    lcd.setCursor(0, 0);
+    lcd.print("Failed to get");
+    lcd.setCursor(0, 1);
+    lcd.print("ERROR_ID reg.");
   }
   else
   {
