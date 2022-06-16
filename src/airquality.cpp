@@ -112,6 +112,14 @@ void loop()
         digitalWrite(YELLOW_PIN, LOW);
         digitalWrite(RED_PIN, HIGH);
       }
+      if (WiFi.status() == WL_CONNECTED)
+      {
+        sendMeasurements();
+      }
+      else
+      {
+        Serial.println("No WiFi");
+      }
       previousMeasurementMillis = millis();
     }
     else if (myCCS811.checkForStatusError())
@@ -121,7 +129,7 @@ void loop()
 
     delay(5000);
   }
-  else if (millis() >= /*20 * 60 **/ 1000)
+  else if (millis() >= /*20 * 60 * 1000*/ 10000)
   {
     sensorsReady = true;
   }
@@ -135,11 +143,11 @@ void loop()
     lcd.setCursor(0, 2);
     if (WiFi.status() != WL_CONNECTED)
     {
-      lcd.println("No WiFi");
+      lcd.print("No WiFi, retrying");
     }
     else
     {
-      lcd.println("WiFi connected");
+      lcd.print("WiFi connected");
     }
 
     Serial.print("Waiting for sensors to stabilize, currently elapsed: ");
@@ -147,11 +155,11 @@ void loop()
     Serial.println("/20 minutes");
     if (WiFi.status() != WL_CONNECTED)
     {
-      Serial.print("No WiFi");
+      Serial.println("No WiFi");
     }
     else
     {
-      Serial.print("WiFi connected, SSID: " + String(SSID));
+      Serial.println("WiFi connected, SSID: " + String(SSID));
     }
 
     digitalWrite(GREEN_PIN, HIGH);
@@ -188,7 +196,6 @@ void printInfoLcd()
   lcd.setCursor(0, 1);
   lcd.print("TVOC  " + String(tvoc) + " ppb");
   lcd.setCursor(0, 2);
-  // https://forum.arduino.cc/t/solved-how-to-print-the-degree-symbol-extended-ascii/438685/5
   lcd.print("Temp  " + String(temperatureC) + " \xDF");
   lcd.print("C");
   lcd.setCursor(0, 3);
@@ -300,16 +307,19 @@ void sendMeasurements()
   http.addHeader("Content-Type", "application/json");
 
   String json = "{";
-  json += "'temperature':" + String(temperatureC) + ",";
-  json += "'humidity':" + String(relativeHumidity) + ",";
-  json += "'co2':" + String(co2) + ",";
-  json += "'tvoc':" + String(tvoc) + ",";
-  json += "'pm25':" + String(pm_data.pm25_env) + ",";
-  json += "'pm10':" + String(pm_data.pm10_env) + ",";
+  json += "\"temperature\":" + String(temperatureC) + ",";
+  json += "\"humidity\":" + String(relativeHumidity) + ",";
+  json += "\"co2\":" + String(co2) + ",";
+  json += "\"tvoc\":" + String(tvoc) + ",";
+  json += "\"pm25\":" + String(pm_data.pm25_env) + ",";
+  json += "\"pm10\":" + String(pm_data.pm10_env);
   json += "}";
 
+  Serial.println(json);
+
   int httpResponseCode = http.POST(json);
-  Serial.println("Sending data: " + httpResponseCode);
+  delay(100);
+  Serial.println("Response: " + String(httpResponseCode));
   http.end();
 }
 
