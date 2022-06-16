@@ -3,7 +3,7 @@
 #include <hd44780.h>                       // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include "Adafruit_PM25AQI.h"
-#include <HTTPClient.h>
+#include "ST25DVSensor.h"
 
 #include <constants.h>
 
@@ -11,6 +11,7 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
 
 #define CCS811_ADDR 0x5B // Default I2C Address
 
@@ -35,6 +36,14 @@ PM25_AQI_Data pm_data;
 boolean sensorsReady = false; // CCS811 and BME280 require 20 minutes to start showing accurate results.
 int previousMeasurementMillis = 0;
 
+#define GPO_PIN 0
+#define LPD_PIN 0
+#define SDA_PIN 22
+#define SCL_PIN 21
+
+const char uri_write_message[] = "192.168.0.13:5000/";
+const char uri_write_protocol[] = URI_ID_0x03_STRING;
+
 void readMeasurements();
 void printInfoSerial();
 void printInfoLcd();
@@ -46,6 +55,20 @@ void setup()
   WiFi.begin(SSID, WIFI_PASSWORD);
 
   lcd.begin(20, 4);
+  Wire.setPins(SDA_PIN, SCL_PIN);
+  if (st25dv.begin(GPO_PIN, LPD_PIN, &Wire) == 0)
+  {
+    Serial.println("NFC init done!");
+  }
+  else
+  {
+    Serial.println("NFC init failed!");
+  }
+
+  if (st25dv.writeURI(uri_write_protocol, uri_write_message, ""))
+  {
+    Serial.println("NFC write failed!");
+  }
 
   pinMode(RED_PIN, OUTPUT);
   pinMode(YELLOW_PIN, OUTPUT);
@@ -127,7 +150,7 @@ void loop()
       printSensorError();
     }
 
-    delay(5000);
+    delay(60000);
   }
   else if (millis() >= /*20 * 60 * 1000*/ 10000)
   {
