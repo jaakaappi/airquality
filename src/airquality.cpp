@@ -19,7 +19,7 @@
 #define YELLOW_PIN 12
 #define GREEN_PIN 13
 
-#define MEASUREMENT_INTERVAL 60 * 1000
+#define MEASUREMENT_INTERVAL 10 * 60 * 1000 // 10 minutes
 
 CCS811 myCCS811(CCS811_ADDR);
 BME280 myBME280;
@@ -41,8 +41,8 @@ int previousMeasurementMillis = 0;
 #define SDA_PIN 22
 #define SCL_PIN 21
 
-const char uri_write_message[] = "192.168.0.13:5000/";
-const char uri_write_protocol[] = URI_ID_0x03_STRING;
+String uri_write_message = NFC_URL;
+String uri_write_protocol = URI_ID_0x03_STRING;
 
 void readMeasurements();
 void printInfoSerial();
@@ -153,7 +153,7 @@ void loop()
 
     delay(5000);
   }
-  else if (millis() >= /*20 * 60 * 1000*/ 10000)
+  else if (millis() >= 20 * 60 * 1000)
   {
     sensorsReady = true;
     readMeasurements();
