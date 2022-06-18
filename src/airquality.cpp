@@ -1,9 +1,9 @@
-#include <SparkFunBME280.h>                // Click here to get the library: http://librarymanager/All#SparkFun_BME280
-#include <SparkFunCCS811.h>                // Click here to get the library: http://librarymanager/All#SparkFun_CCS811
+#include <SparkFunBME280.h> // Click here to get the library: http://librarymanager/All#SparkFun_BME280
+// #include <SparkFunCCS811.h>                // Click here to get the library: http://librarymanager/All#SparkFun_CCS811
 #include <hd44780.h>                       // main hd44780 header
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include "Adafruit_PM25AQI.h"
-#include "ST25DVSensor.h"
+// #include "ST25DVSensor.h"
 
 #include <constants.h>
 
@@ -13,7 +13,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-#define CCS811_ADDR 0x5B // Default I2C Address
+// #define CCS811_ADDR 0x5B // Default I2C Address
 
 #define RED_PIN 14
 #define YELLOW_PIN 12
@@ -21,7 +21,7 @@
 
 #define MEASUREMENT_INTERVAL 10 * 60 * 1000 // 10 minutes
 
-CCS811 myCCS811(CCS811_ADDR);
+// CCS811 myCCS811(CCS811_ADDR);
 BME280 myBME280;
 int co2 = 0;
 int tvoc = 0;
@@ -36,13 +36,13 @@ PM25_AQI_Data pm_data;
 boolean sensorsReady = false; // CCS811 and BME280 require 20 minutes to start showing accurate results.
 int previousMeasurementMillis = 0;
 
-#define GPO_PIN 0
-#define LPD_PIN 0
-#define SDA_PIN 22
-#define SCL_PIN 21
+// #define GPO_PIN 0
+// #define LPD_PIN 0
+// #define SDA_PIN 22
+// #define SCL_PIN 21
 
-String uri_write_message = NFC_URL;
-String uri_write_protocol = URI_ID_0x03_STRING;
+// String uri_write_message = NFC_URL;
+// String uri_write_protocol = URI_ID_0x03_STRING;
 
 void readMeasurements();
 void printInfoSerial();
@@ -58,19 +58,19 @@ void setup()
   lcd.begin(20, 4);
   delay(100);
 
-  if (st25dv.begin(GPO_PIN, LPD_PIN, &Wire) == 0)
-  {
-    Serial.println("NFC init done!");
-  }
-  else
-  {
-    Serial.println("NFC init failed!");
-  }
+  // if (st25dv.begin(GPO_PIN, LPD_PIN) == 0)
+  // {
+  //   Serial.println("NFC init done!");
+  // }
+  // else
+  // {
+  //   Serial.println("NFC init failed!");
+  // }
 
-  if (st25dv.writeURI(uri_write_protocol, uri_write_message, ""))
-  {
-    Serial.println("NFC write failed!");
-  }
+  // if (st25dv.writeURI(uri_write_protocol, uri_write_message, ""))
+  // {
+  //   Serial.println("NFC write failed!");
+  // }
 
   pinMode(RED_PIN, OUTPUT);
   pinMode(YELLOW_PIN, OUTPUT);
@@ -81,9 +81,9 @@ void setup()
   Serial.println();
   Serial.println("Apply BME280 data to CCS811 for compensation.");
 
-  CCS811Core::CCS811_Status_e returnCode = myCCS811.beginWithStatus();
-  Serial.print("CCS811 begin exited with: ");
-  Serial.println(myCCS811.statusString(returnCode));
+  // CCS811Core::CCS811_Status_e returnCode = myCCS811.beginWithStatus();
+  // Serial.print("CCS811 begin exited with: ");
+  // Serial.println(myCCS811.statusString(returnCode));
 
   myBME280.settings.commInterface = I2C_MODE;
   myBME280.settings.I2CAddress = 0x77;
@@ -110,7 +110,7 @@ void setup()
 
 void loop()
 {
-  if (sensorsReady && myCCS811.dataAvailable())
+  if (sensorsReady) //&& myCCS811.dataAvailable())
   {
     printInfoLcd();
 
@@ -146,10 +146,10 @@ void loop()
       }
       previousMeasurementMillis = millis();
     }
-    else if (myCCS811.checkForStatusError())
-    {
-      printSensorError();
-    }
+    // else if (myCCS811.checkForStatusError())
+    // {
+    //   printSensorError();
+    // }
 
     delay(5000);
   }
@@ -213,27 +213,14 @@ void loop()
 
 void readMeasurements()
 {
-  int tempCo2 = 0;
-  int tempTvoc = 0;
-  float tempTemperatureC = 0.0;
-  float tempRelativeHumidity = 0.0;
 
-  // some averaging
-  for (int i = 0; i < 3; i++)
-  {
-    myCCS811.readAlgorithmResults();
-    tempCo2 += myCCS811.getCO2();
-    tempTvoc += myCCS811.getTVOC();
-    tempTemperatureC += myBME280.readTempC();
-    tempRelativeHumidity += myBME280.readFloatHumidity();
-  }
+  // myCCS811.readAlgorithmResults();
+  // co2 += myCCS811.getCO2();
+  // tvoc += myCCS811.getTVOC();
+  temperatureC = myBME280.readTempC();
+  relativeHumidity = myBME280.readFloatHumidity();
 
-  co2 = tempCo2 / 3;
-  tvoc = tempTvoc / 3;
-  temperatureC = tempTemperatureC / 3;
-  relativeHumidity = tempRelativeHumidity / 3;
-
-  myCCS811.setEnvironmentalData(tempRelativeHumidity, temperatureC);
+  // myCCS811.setEnvironmentalData(tempRelativeHumidity, temperatureC);
 
   aqi.read(&pm_data);
 }
@@ -276,14 +263,14 @@ void printInfoLcd()
 
 void printInfoSerial()
 {
-  Serial.println("CCS811 data:");
-  Serial.print(" CO2 concentration : ");
-  Serial.print(myCCS811.getCO2());
-  Serial.println(" ppm");
+  // Serial.println("CCS811 data:");
+  // Serial.print(" CO2 concentration : ");
+  // Serial.print(myCCS811.getCO2());
+  // Serial.println(" ppm");
 
-  Serial.print(" TVOC concentration : ");
-  Serial.print(myCCS811.getTVOC());
-  Serial.println(" ppb");
+  // Serial.print(" TVOC concentration : ");
+  // Serial.print(myCCS811.getTVOC());
+  // Serial.println(" ppb");
 
   Serial.println("BME280 data:");
   Serial.print(" Temperature: ");
@@ -373,6 +360,7 @@ void sendMeasurements()
   http.end();
 }
 
+/*
 void printSensorError()
 {
   uint8_t error = myCCS811.getErrorRegister();
@@ -430,3 +418,4 @@ void printSensorError()
     Serial.println();
   }
 }
+*/
