@@ -78,8 +78,6 @@ void setup()
 
   Serial.begin(115200);
   delay(100);
-  Serial.println();
-  Serial.println("Apply BME280 data to CCS811 for compensation.");
 
   // CCS811Core::CCS811_Status_e returnCode = myCCS811.beginWithStatus();
   // Serial.print("CCS811 begin exited with: ");
