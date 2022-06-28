@@ -3,7 +3,7 @@
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include "Adafruit_PM25AQI.h"
 // #include "ST25DVSensor.h"
-#include "MHZ.h"
+#include "MHZ19.h"
 
 #include <constants.h>
 
@@ -20,11 +20,11 @@
 #define MEASUREMENT_INTERVAL 10 * 60 * 1000 // 10 minutes
 #define WARMUP_PERIOD 20 * 60 * 1000        // 20 minutes
 
-#define CO2_IN 15
 #define MH_Z19_RX 18
 #define MH_Z19_TX 19
 
-MHZ co2_sensor(MH_Z19_RX, MH_Z19_TX, CO2_IN, MHZ19C);
+MHZ19 co2_sensor;
+SoftwareSerial co2_serial(MH_Z19_RX, MH_Z19_TX);
 
 BME280 myBME280;
 int co2 = 0;
@@ -87,8 +87,9 @@ void setup()
   Serial.begin(115200);
   delay(100);
 
-  pinMode(CO2_IN, INPUT);
-  co2_sensor.setAutoCalibrate(false);
+  co2_serial.begin(9600);
+  co2_sensor.begin(co2_serial);
+  co2_sensor.autoCalibration(false);
   delay(100);
 
   myBME280.settings.commInterface = I2C_MODE;
@@ -223,7 +224,7 @@ void readMeasurements()
 {
   temperatureC = myBME280.readTempC();
   relativeHumidity = myBME280.readFloatHumidity();
-  co2 = co2_sensor.readCO2UART();
+  co2 = co2_sensor.getCO2();
 
   aqi.read(&pm_data);
 }
