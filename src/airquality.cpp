@@ -4,6 +4,7 @@
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 #include "Adafruit_PM25AQI.h"
 // #include "ST25DVSensor.h"
+#include "MHZ.h"
 
 #include <constants.h>
 
@@ -12,7 +13,6 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-
 // #define CCS811_ADDR 0x5B // Default I2C Address
 
 #define RED_PIN 14
@@ -20,6 +20,13 @@
 #define GREEN_PIN 13
 
 #define MEASUREMENT_INTERVAL 10 * 60 * 1000 // 10 minutes
+#define WARMUP_PERIOD 20 * 60 * 1000        // 20 minutes
+
+#define CO2_IN 15
+#define MH_Z19_RX 18
+#define MH_Z19_TX 19
+
+MHZ co2_sensor(MH_Z19_RX, MH_Z19_TX, CO2_IN, MHZ19C, RANGE_2K);
 
 // CCS811 myCCS811(CCS811_ADDR);
 BME280 myBME280;
@@ -35,6 +42,9 @@ PM25_AQI_Data pm_data;
 
 boolean sensorsReady = false; // CCS811 and BME280 require 20 minutes to start showing accurate results.
 int previousMeasurementMillis = 0;
+
+static int WIFI_RETRY_INTERVAL = 60 * 1000;
+int previousWifiRetryMillis = 0;
 
 // #define GPO_PIN 0
 // #define LPD_PIN 0
@@ -53,6 +63,7 @@ void sendMeasurements();
 void setup()
 {
   WiFi.begin(SSID, WIFI_PASSWORD);
+  previousWifiRetryMillis = millis();
   delay(100);
 
   lcd.begin(20, 4);
@@ -78,6 +89,10 @@ void setup()
 
   Serial.begin(115200);
   delay(100);
+
+  pinMode(CO2_IN, INPUT);
+  delay(100);
+  Serial.println("MHZ 19C");
 
   // CCS811Core::CCS811_Status_e returnCode = myCCS811.beginWithStatus();
   // Serial.print("CCS811 begin exited with: ");
@@ -148,10 +163,14 @@ void loop()
     // {
     //   printSensorError();
     // }
-
+    if (WiFi.status() != WL_CONNECTED && millis() - previousWifiRetryMillis > WIFI_RETRY_INTERVAL)
+    {
+      WiFi.begin(SSID, WIFI_PASSWORD);
+      previousWifiRetryMillis = millis();
+    }
     delay(5000);
   }
-  else if (millis() >= 20 * 60 * 1000)
+  else if (millis() >= WARMUP_PERIOD)
   {
     sensorsReady = true;
     readMeasurements();
@@ -205,6 +224,11 @@ void loop()
     delay(200);
     digitalWrite(RED_PIN, LOW);
 
+    if (WiFi.status() != WL_CONNECTED && millis() - previousWifiRetryMillis > WIFI_RETRY_INTERVAL)
+    {
+      WiFi.begin(SSID, WIFI_PASSWORD);
+      previousWifiRetryMillis = millis();
+    }
     delay(1000);
   }
 }
@@ -219,6 +243,8 @@ void readMeasurements()
   relativeHumidity = myBME280.readFloatHumidity();
 
   // myCCS811.setEnvironmentalData(tempRelativeHumidity, temperatureC);
+
+  co2 = co2_sensor.readCO2UART();
 
   aqi.read(&pm_data);
 }
@@ -262,9 +288,9 @@ void printInfoLcd()
 void printInfoSerial()
 {
   // Serial.println("CCS811 data:");
-  // Serial.print(" CO2 concentration : ");
-  // Serial.print(myCCS811.getCO2());
-  // Serial.println(" ppm");
+  Serial.print("CO2 concentration : ");
+  Serial.print(co2);
+  Serial.println(" ppm");
 
   // Serial.print(" TVOC concentration : ");
   // Serial.print(myCCS811.getTVOC());
