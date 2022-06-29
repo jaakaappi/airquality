@@ -4,6 +4,8 @@
 #include "Adafruit_PM25AQI.h"
 // #include "ST25DVSensor.h"
 #include "MHZ19.h"
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
 
 #include <constants.h>
 
@@ -25,6 +27,11 @@
 #define MH_Z19_TX 19
 
 #define GAS_SENSOR_ANALOG_PIN 39
+
+#define DHTPIN 36
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
 
 MHZ19 co2_sensor;
 SoftwareSerial co2_serial(MH_Z19_RX, MH_Z19_TX);
@@ -115,6 +122,9 @@ void setup()
   }
 
   pinMode(GAS_SENSOR_ANALOG_PIN, INPUT);
+  delay(100);
+
+  dht.begin();
   delay(100);
 }
 
