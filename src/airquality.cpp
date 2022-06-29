@@ -12,6 +12,7 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <SoftwareSerial.h>
 
 #define RED_PIN 14
 #define YELLOW_PIN 12
@@ -22,6 +23,8 @@
 
 #define MH_Z19_RX 18
 #define MH_Z19_TX 19
+
+#define GAS_SENSOR_ANALOG_PIN 39
 
 MHZ19 co2_sensor;
 SoftwareSerial co2_serial(MH_Z19_RX, MH_Z19_TX);
@@ -110,6 +113,9 @@ void setup()
   {
     Serial.println("Could not find PM 2.5 sensor!");
   }
+
+  pinMode(GAS_SENSOR_ANALOG_PIN, INPUT);
+  delay(100);
 }
 
 void loop()
@@ -225,7 +231,7 @@ void readMeasurements()
   temperatureC = myBME280.readTempC();
   relativeHumidity = myBME280.readFloatHumidity();
   co2 = co2_sensor.getCO2();
-
+  tvoc = analogRead(GAS_SENSOR_ANALOG_PIN);
   aqi.read(&pm_data);
 }
 
@@ -235,7 +241,7 @@ void printInfoLcd()
   lcd.setCursor(0, 0);
   lcd.print("CO2   " + String(co2) + " ppm");
   lcd.setCursor(0, 1);
-  lcd.print("TVOC  " + String(tvoc) + " ppb");
+  lcd.print("Gasses  " + String(tvoc) + " ppm");
   lcd.setCursor(0, 2);
   lcd.print("Temp  " + String(temperatureC) + " \xDF");
   lcd.print("C");
@@ -271,37 +277,25 @@ void printInfoSerial()
   Serial.print(co2);
   Serial.println(" ppm");
 
-  // Serial.print(" TVOC concentration : ");
-  // Serial.print(myCCS811.getTVOC());
-  // Serial.println(" ppb");
+  Serial.print("Gas concentration : ");
+  Serial.print(tvoc);
+  Serial.println(" ppm");
 
   Serial.println("BME280 data:");
   Serial.print(" Temperature: ");
-  Serial.print(myBME280.readTempC(), 2);
+  Serial.print(temperatureC, 2);
   Serial.println(" degrees C");
-
-  Serial.print(" Temperature: ");
-  Serial.print(myBME280.readTempF(), 2);
-  Serial.println(" degrees F");
 
   Serial.print(" Pressure: ");
   Serial.print(myBME280.readFloatPressure(), 2);
   Serial.println(" Pa");
 
-  Serial.print(" Pressure: ");
-  Serial.print((myBME280.readFloatPressure() * 0.0002953), 2);
-  Serial.println(" InHg");
-
   Serial.print(" Altitude: ");
   Serial.print(myBME280.readFloatAltitudeMeters(), 2);
   Serial.println("m");
 
-  Serial.print(" Altitude: ");
-  Serial.print(myBME280.readFloatAltitudeFeet(), 2);
-  Serial.println("ft");
-
   Serial.print(" %RH: ");
-  Serial.print(myBME280.readFloatHumidity(), 2);
+  Serial.print(relativeHumidity, 2);
   Serial.println(" %");
 
   Serial.println();
