@@ -1,14 +1,3 @@
-#include <SparkFunBME280.h>                // Click here to get the library: http://librarymanager/All#SparkFun_BME280
-#include <hd44780.h>                       // main hd44780 header
-#include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
-#include "Adafruit_PM25AQI.h"
-// #include "ST25DVSensor.h"
-#include "MHZ19.h"
-#include <Adafruit_Sensor.h>
-#include <DHT.h>
-
-#include <constants.h>
-
 #include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -16,12 +5,23 @@
 #include <HTTPClient.h>
 #include <SoftwareSerial.h>
 
+#include <hd44780.h>                       // main hd44780 header
+#include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
+#include "Adafruit_PM25AQI.h"
+// #include "ST25DVSensor.h"
+#include "MHZ19.h"
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <Adafruit_BME280.h>
+
+#include <constants.h>
+
 #define RED_PIN 14
 #define YELLOW_PIN 12
 #define GREEN_PIN 13
 
-#define MEASUREMENT_INTERVAL 10 * 60 * 1000 // 10 minutes
-#define WARMUP_PERIOD 20 * 60 * 1000        // 20 minutes
+#define MEASUREMENT_INTERVAL 60 * 1000 // 1 minute
+#define WARMUP_PERIOD 60 * 1000        // 1 minute
 
 #define MH_Z19_RX 18
 #define MH_Z19_TX 19
@@ -36,7 +36,8 @@ DHT dht(DHTPIN, DHTTYPE);
 MHZ19 co2_sensor;
 SoftwareSerial co2_serial(MH_Z19_RX, MH_Z19_TX);
 
-BME280 myBME280;
+Adafruit_BME280 myBME280;
+
 int co2 = 0;
 int tvoc = 0;
 float temperatureC = 0.0;
@@ -47,7 +48,7 @@ hd44780_I2Cexp lcd(0x27);
 Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
 PM25_AQI_Data pm_data;
 
-boolean sensorsReady = false; // BME280 requires 20 minutes to start showing accurate results.
+boolean sensorsReady = false;
 int previousMeasurementMillis = 0;
 
 static int WIFI_RETRY_INTERVAL = 60 * 1000;
@@ -102,18 +103,12 @@ void setup()
   co2_sensor.autoCalibration(false);
   delay(100);
 
-  myBME280.settings.commInterface = I2C_MODE;
-  myBME280.settings.I2CAddress = 0x77;
-
-  myBME280.settings.commInterface = I2C_MODE;
-  myBME280.settings.I2CAddress = 0x77;
-  myBME280.settings.runMode = MODE_FORCED;
-  myBME280.settings.tStandby = 60000;
-  myBME280.settings.filter = 0;
-  myBME280.settings.tempOverSample = 1;
-  myBME280.settings.pressOverSample = 1;
-  myBME280.settings.humidOverSample = 1;
   myBME280.begin();
+  myBME280.setSampling(Adafruit_BME280::MODE_FORCED,
+                       Adafruit_BME280::SAMPLING_X1, // temperature
+                       Adafruit_BME280::SAMPLING_X1, // pressure
+                       Adafruit_BME280::SAMPLING_X1, // humidity
+                       Adafruit_BME280::FILTER_OFF);
   delay(100);
 
   if (!aqi.begin_I2C())
@@ -238,8 +233,9 @@ void loop()
 
 void readMeasurements()
 {
-  temperatureC = myBME280.readTempC();
-  relativeHumidity = myBME280.readFloatHumidity();
+  myBME280.takeForcedMeasurement();
+  temperatureC = myBME280.readTemperature() - 1.2; // self heating compensation
+  relativeHumidity = myBME280.readHumidity();
   co2 = co2_sensor.getCO2();
   tvoc = analogRead(GAS_SENSOR_ANALOG_PIN);
   aqi.read(&pm_data);
@@ -297,11 +293,11 @@ void printInfoSerial()
   Serial.println(" degrees C");
 
   Serial.print(" Pressure: ");
-  Serial.print(myBME280.readFloatPressure(), 2);
+  Serial.print(myBME280.readPressure() / 100, 2);
   Serial.println(" Pa");
 
   Serial.print(" Altitude: ");
-  Serial.print(myBME280.readFloatAltitudeMeters(), 2);
+  Serial.print(myBME280.readAltitude(1013.25), 2);
   Serial.println("m");
 
   Serial.print(" %RH: ");
