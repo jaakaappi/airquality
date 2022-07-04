@@ -1,19 +1,22 @@
 # airquality
 
-Yet Another Air Quality Meter. Shows CO2, TVOC, temperature, relative humidity, PM and particles by weight in volume readings
+Yet Another Air Quality Meter
+
+Shows CO2, CO, alcohol, gasses, temperature, relative humidity, PM and particles by weight in volume readings.
+
 
 Hardware
 * NodeMCUv3 ESP8266 (ESP-12E)
-* CCS811/BME280 Environmental Combo Breakout (SparkFun)
-* PMSA003I PM2.5 Air Quality Sensor (Adafruit)
+* CCS811/BME280 Environmental Combo Breakout for humidity (SparkFun)
+* PMSA003I PM2.5 Air Quality Sensor for PM and particles by weight in volume (Adafruit)
+* DHT22 for temperature
+* MH-Z19C CO2 sensor
+* MiCS5524 gas sensor for CO, alcohol and gasses
 * 20x04 character I2C LCD
 * Three LEDs to display CO2 levels
-
-Generally based on https://github.com/sparkfun/SparkFun_CCS811_Arduino_Library/blob/master/examples/Example2_BME280Compensation/Example2_BME280Compensation.ino by Marshall Taylor @ SparkFun Electronics, April 4, 2017
+* ST25DV NFC module for opening the graphs with phone
 
 ## TODO
-* Check gas sensor burn-in times, it's acting up a bit showing 400ppm readings
-* Figure out why DHT22/DHT11 does not work
 * Re-attach traffic lights
 
 <img src="https://i.imgur.com/dj4vFpZ.jpg" height="400">
