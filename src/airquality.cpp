@@ -28,8 +28,8 @@
 
 #define GAS_SENSOR_ANALOG_PIN 39
 
-#define DHTPIN 36
-#define DHTTYPE DHT11
+#define DHTPIN 32
+#define DHTTYPE DHT22
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -189,7 +189,7 @@ void loop()
     lcd.setCursor(0, 0);
     lcd.print("Warming up ");
     lcd.setCursor(0, 1);
-    lcd.print(String(millis() / (1000 * 60)) + "/20 minutes");
+    lcd.print(String(millis() / 1000) + "/60 seconds");
     lcd.setCursor(0, 2);
     if (WiFi.status() != WL_CONNECTED)
     {
@@ -201,8 +201,8 @@ void loop()
     }
 
     Serial.print("Waiting for sensors to stabilize, currently elapsed: ");
-    Serial.print(millis() / (1000 * 60));
-    Serial.println("/20 minutes");
+    Serial.print(millis() / 1000);
+    Serial.println("/60 seconds");
     if (WiFi.status() != WL_CONNECTED)
     {
       Serial.println("No WiFi");
@@ -227,14 +227,14 @@ void loop()
       WiFi.begin(SSID, WIFI_PASSWORD);
       previousWifiRetryMillis = millis();
     }
-    delay(1000);
+    delay(500);
   }
 }
 
 void readMeasurements()
 {
   myBME280.takeForcedMeasurement();
-  temperatureC = myBME280.readTemperature() - 1.2; // self heating compensation
+  temperatureC = dht.readTemperature();
   relativeHumidity = myBME280.readHumidity();
   co2 = co2_sensor.getCO2();
   tvoc = analogRead(GAS_SENSOR_ANALOG_PIN);
