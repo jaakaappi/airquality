@@ -20,8 +20,8 @@
 #define YELLOW_PIN 12
 #define GREEN_PIN 13
 
-#define MEASUREMENT_INTERVAL 60 * 1000 // 1 minute
-#define WARMUP_PERIOD 60 * 1000        // 1 minute
+#define MEASUREMENT_INTERVAL 10 * 60 * 1000 // 10 minutes
+#define WARMUP_PERIOD 60 * 1000             // 1 minute
 
 #define MH_Z19_RX 18
 #define MH_Z19_TX 19
