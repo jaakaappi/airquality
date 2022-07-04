@@ -16,9 +16,6 @@ Hardware
 * Three LEDs to display CO2 levels
 * ST25DV NFC module for opening the graphs with phone
 
-## TODO
-* Re-attach traffic lights
-
 <img src="https://i.imgur.com/dj4vFpZ.jpg" height="400">
 <img src="https://i.imgur.com/Dr5kTJo.jpg" height="400">
 <img src="https://i.imgur.com/omIsKV0.jpg" height="400">
